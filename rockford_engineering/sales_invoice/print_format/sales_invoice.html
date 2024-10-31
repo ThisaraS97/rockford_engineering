@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+    <style>
+        /* Letterhead Styles */
+        .letterhead {
+            border: 0px solid #ffffff;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .letterhead h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .letterhead h4 {
+            margin-top: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: right;
+        }
+        .letterhead td {
+            border: 0px;
+        }
+        .letterhead .text-left {
+            text-align: left;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .letterhead img {
+            object-fit: contain;
+            width: 100px;
+            height: auto;
+        }
+        
+        /* Invoice Header Styles */
+        .invoice-container {
+            font-size: 12px;
+        }
+        .invoice-header, .invoice-address-row, .invoice-link-section, .bottom-section {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .invoice-header td, .invoice-address-row td, .invoice-link-section th, .invoice-link-section td {
+            padding: 5px;
+        }
+        
+        /* Table Styles */
+        .invoice-table, .invoice-link-table, .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .invoice-table th, .invoice-table td,
+        .invoice-link-table th, .invoice-link-table td,
+        .summary-table th, .summary-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .invoice-table th {
+            background-color: #f2f2f2;
+        }
+        .invoice-link-table th, .summary-table th {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        
+        /* Bottom Section Styles */
+        .bottom-section p {
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .summary-table .total {
+            font-weight: bold;
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <table class="letterhead">
+        <tr>
+            <td class="text-left" width="70%">
+                <h1>Insinc Products Ltd</h1>
+                <p>PO Box 310 140</p>
+                <p>Red Beach</p>
+                <p>Auckland 0945</p>
+                <p>New Zealand</p>
+                <p>Free phone: 0508 467 462</p>
+                <p>Website: www.insinc.co.nz</p>
+                <p>GST number: 91268795</p>
+            </td>
+            <td width="30%">
+                <img src="/files/insinc.png" alt="Insinc Logo">
+                <h4>
+                    {% if doc.is_return %}
+                        Credit Memo
+                    {% else %}
+                        Sales Invoice
+                    {% endif %}
+                </h4>
+            </td> 
+        </tr>
+    </table>
+</header>
+
+<div class="invoice-container">
+
+    <!-- Invoice Header Section -->
+    <div class="invoice-header">
+        <table>
+            <tr>
+                <td width="70%">
+                    <p><strong>Insinc Bank Account:</strong> 12-3025-0407476-00</p>
+                    <p><strong>Email:</strong> sales@insinc.co.nz</p>
+                </td>
+                <td width="30%" style="text-align: right;">
+                    <p>{{ doc.get_formatted("posting_date", doc) }}</p>
+                    <p><strong>{% if doc.is_return %}Credit No:{% else %}Invoice No:{% endif %}</strong> {{ doc.name }}</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Invoice Address Section -->
+    <div class="invoice-address-row">
+        <table>
+            <tr>
+                <td width="30%">
+                    <p><strong>Bill To:</strong></p>
+                    <p>{{ doc.get_formatted("customer_name", doc) }}</p>
+                    <p>{{ doc.address_display }}</p>
+                </td>
+                <td width="60%">
+                    <p><strong>Ship To:</strong></p>
+                    <p>{{ doc.get_formatted("customer_name", doc) }}</p>
+                    <p>{{ doc.shipping_address }}</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Invoice Link Section -->
+    <div class="invoice-link-section">
+        <table class="invoice-link-table">
+            <thead>
+                <tr>
+                    <th>PO #</th>
+                    <th>SO #</th>
+                    <th>Terms</th>
+                    {% if not doc.is_return %}
+                        <th>Due Date</th>
+                        <th>Ship Date</th>
+                    {% endif %}
+                    <th>Memo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for obj in objects_list %}
+                <tr>
+                    <td>{{ doc.po_no }}</td>
+                    <td>{{ obj.sales_order }}</td>
+                    <td>{{ doc.payment_terms_template }}</td>
+                    {% if not doc.is_return %}
+                    <td>{{ doc.get_formatted("due_date", doc) if doc.status != "Paid" else "Paid" }}</td>
+                    <td>{{ obj.delivery_date.strftime("%d-%m-%Y") }}</td>
+                    {% endif %}
+                    <td>{{ doc.custom_memo }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Invoice Items Table -->
+    <table class="invoice-table">
+        <thead>
+            <tr>
+                <th width="18%">Item Code</th>
+                <th width="30%">Description</th>
+                <th width="5%">Units</th>
+                <th width="7%">Quantity</th>
+                <th width="20%">Unit Price</th>
+                <th width="20%">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in doc.items %}
+            <tr>
+                <td>{{ item.item_code }}</td>
+                <td>{{ item.description }}</td>
+                <td>{{ item.get_formatted("qty") }}</td>
+                <td>{{ item.uom }}</td>
+                <td>{{ item.get_formatted("rate", item) }}</td>
+                <td>{{ item.get_formatted("amount", item) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Bottom Section with Summary -->
+    <div class="bottom-section">
+        <table>
+            <tr>
+                <td width="70%">
+                    <p>Returns will only be accepted with prior approval. We will not accept returns if you have over ordered unless previously agreed. Returns due to a change of mind will incur a 30% restocking fee. If a product is faulty please advise us immediately. IF YOUR PURCHASE IS FOR A CORONAVIRUS RELATED PRODUCT THIS IS NON-RETURNABLE UNLESS FAULTY</p>
+                </td>
+                <td width="30%">
+                    <table class="summary-table">
+                        <tr>
+                            <th>Subtotal</th>
+                            <td>{{ doc.get_formatted("total", doc) }}</td>
+                        </tr>
+                        <tr>
+                            <th>Tax Total</th>
+                            <td>{{ doc.get_formatted("total_taxes_and_charges", doc) }}</td>
+                        </tr>
+                        <tr class="total">
+                            <th>Total</th>
+                            <td>{{ doc.get_formatted("grand_total", doc) }}</td>
+                        </tr>
+                        {% if not doc.is_return %}
+                        <tr>
+                            <th>Amount Paid</th>
+                            <td>{{ frappe.utils.fmt_money(doc.grand_total - doc.outstanding_amount, currency=doc.currency) }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+</div>
+
+</body>
+</html>
