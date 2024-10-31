@@ -5,6 +5,25 @@ app_description = "this app for automobile workshops and shops"
 app_email = "wg.shaminda@gmainl.com"
 app_license = "mit"
 
+doctype_js = {
+    "Customer": "public/js/customer_vehicle.js"
+}
+doctype_js = {
+    "Customer": "public/js/customer_outstanding.js"
+}
+doctype_js = {
+    "Vehicle Repair Work Order": "public/js/work_order_permission.js"
+}
+
+fixtures = [
+    {
+        "doctype": "Print Format",
+        "filters": [
+            ["name", "in", ["sales_invoice"]]
+        ]
+    }
+]
+
 # Apps
 # ------------------
 
